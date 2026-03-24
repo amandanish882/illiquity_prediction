@@ -1,0 +1,38 @@
+# Environment and secrets
+.env
+*.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Large data files
+data/cache/
+data/raw/
+*.parquet
+*.pkl
+features/feature_matrix.csv
+
+# Outputs (except figures for README)
+outputs/model.pkl
+outputs/results/
+outputs/cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Misc
+*.log

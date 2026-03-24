@@ -1,0 +1,127 @@
+# ─────────────────────────────────────────────
+# Illiquidity Prediction Engine — Configuration
+# ─────────────────────────────────────────────
+
+paths:
+  data_dir: "data"
+  features_dir: "features"
+  outputs_dir: "outputs"
+  figures_dir: "outputs/figures"
+  results_dir: "outputs/results"
+  cache_dir: "data/cache"
+
+# ── Data Sourcing ──────────────────────────────
+data:
+  # FINRA TRACE
+  trace:
+    # Number of synthetic bonds if real data unavailable
+    n_ig_bonds: 500
+    n_hy_bonds: 250
+    n_days: 252  # ~1 year of trading days
+    start_date: "2024-01-02"
+    end_date: "2024-12-31"
+
+  # ETF Holdings
+  etf:
+    tickers:
+      - ticker: "LQD"
+        product_id: "239566"
+        name: "iShares iBoxx $ Investment Grade Corporate Bond ETF"
+      - ticker: "HYG"
+        product_id: "239565"
+        name: "iShares iBoxx $ High Yield Corporate Bond ETF"
+    overlap_etfs: ["LQD", "HYG", "VCIT", "VCSH", "JNK", "USIG"]
+
+  # FRED macro data
+  fred:
+    series:
+      ig_oas: "BAMLC0A0CM"        # ICE BofA US Corp OAS
+      vix: "VIXCLS"               # CBOE VIX
+      hy_oas: "BAMLH0A0HYM2"     # ICE BofA HY OAS
+    start_date: "2023-01-01"
+    end_date: "2024-12-31"
+
+# ── Feature Engineering ────────────────────────
+features:
+  spread_rolling_window: 5        # days for spread volatility
+  staleness_cap: 30               # max days_since_last_trade before capping
+  volume_log_base: 1              # log(1 + volume)
+
+# ── Model ──────────────────────────────────────
+model:
+  type: "lightgbm"                # lightgbm or xgboost
+  target: "illiquidity_t1"        # illiquidity_t1 or illiquidity_t5
+  binary_target: "illiquid_t1"    # binary classification target
+  binary_percentile: 75           # threshold percentile for illiquid flag
+  test_fraction: 0.20             # last 20% of dates for test set
+
+  # Hyperparameter search
+  search:
+    method: "optuna"              # optuna or grid
+    n_trials: 20                  # Optuna trials (max)
+    cv_folds: 3                   # TimeSeriesSplit folds
+    timeout_seconds: 180          # max search time
+
+  # LightGBM search space
+  lightgbm:
+    param_space:
+      n_estimators: [100, 300, 500]
+      max_depth: [4, 6, 8]
+      learning_rate: [0.01, 0.05, 0.1]
+      num_leaves: [15, 31, 63]
+      min_child_samples: [20, 50]
+      subsample: [0.7, 0.8, 0.9]
+      colsample_bytree: [0.7, 0.8, 0.9]
+      reg_alpha: [0.0, 0.1, 1.0]
+      reg_lambda: [0.0, 0.1, 1.0]
+
+  # Calibration
+  calibration:
+    method: "sigmoid"             # sigmoid (Platt) or isotonic
+
+# ── Strategy / Backtest ────────────────────────
+strategy:
+  spread_policy:
+    base_spread_bps: 5.0          # base spread in bps for IG
+    base_spread_hy_bps: 15.0      # base spread in bps for HY
+    sensitivity: 20.0             # bps per unit illiquidity score
+    # Piecewise linear breakpoints
+    piecewise:
+      liquid_threshold: 0.3
+      illiquid_threshold: 0.7
+      liquid_spread_bps: 3.0
+      medium_spread_bps: 8.0
+      illiquid_spread_bps: 25.0
+
+  size_policy:
+    max_notional: 5000000         # $5M max offer size
+    illiquidity_reduction_factor: 0.6  # reduce by up to 60% for most illiquid
+
+  backtest:
+    fill_rate_alpha: 2.0          # logistic fill-rate sensitivity
+    transaction_cost_bps: 2.0     # per-leg transaction cost
+    markout_horizons: [1, 5]      # days
+
+  # Flat spread benchmark
+  flat_spread:
+    ig_bps: 8.0
+    hy_bps: 20.0
+
+# ── Redemption Basket ──────────────────────────
+basket:
+  target_etf: "LQD"
+  redemption_notional: 25000000   # $25M
+  min_bonds: 20
+  max_weight_per_bond: 0.10       # 10%
+  sector_tolerance: 0.05          # ±5% vs index
+  duration_tolerance: 0.25        # ±0.25 years vs index
+  oas_tolerance: 10.0             # ±10 bps vs index
+  illiquidity_penalty: 0.5        # weight for illiquidity in objective
+
+# ── Plotting ───────────────────────────────────
+plotting:
+  style: "whitegrid"
+  context: "paper"
+  figsize: [10, 6]
+  dpi: 150
+  font_scale: 1.2
