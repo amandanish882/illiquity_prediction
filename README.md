@@ -114,9 +114,11 @@ TRACE universe: 520,237 bond-day rows, 2,621 unique CUSIPs
 
 Bond static data (coupon, rating, sector) derived from real TRACE fields:
 
-$$\text{Coupon} = \frac{P/100 - (1+y/2)^{-N}}{(1 - (1+y/2)^{-N}) \,/\, (y/2)} \times 2 \times 100$$
+```
+Coupon = [(P/100 - (1+y/2)^(-N)) / ((1 - (1+y/2)^(-N)) / (y/2))] × 2 × 100
+```
 
-where $P$ is the real TRACE price, $y$ is the real yield-to-maturity, and $N$ is semi-annual periods to maturity.
+where P is the real TRACE price, y is the real yield-to-maturity, and N is semi-annual periods to maturity.
 
 ---
 
@@ -164,9 +166,13 @@ FRED API: 522 daily observations (2023-01-02 to 2024-12-31)
 
 ### Target Variables (Amihud 2002)
 
-$$\text{Amihud}_t = \frac{|\ln(P_t / P_{t-1})|}{\text{Volume}_t + 1}$$
+```
+Amihud_t = |ln(P_t / P_{t-1})| / (Volume_t + 1)
+```
 
-$$\text{illiquid\_t1} = \mathbb{1}\left[\text{Amihud}_{t+1} > Q_{75}\right], \quad Q_{75} = 1.03 \times 10^{-8}$$
+```
+illiquid_t1 = 𝟙[Amihud_{t+1} > Q_75],  Q_75 = 1.03 × 10⁻⁸
+```
 
 | Target | Horizon | Type | Positive Rate |
 |--------|---------|------|---------------|
@@ -261,9 +267,13 @@ SHAP TreeExplainer decomposes predictions into per-feature contributions:
 
 Simulates dealer quoting with a logistic fill model and computes markout P&L using **real future TRACE prices**:
 
-$$P(\text{fill}) = \frac{1}{1 + \exp\left(\alpha \cdot (\text{spread} - \text{market\_spread})\right)}$$
+```
+P(fill) = 1 / (1 + exp(α · (spread - market_spread)))
+```
 
-$$\text{Markout}_{t+k} = \frac{\text{Mid}_{t+k} - \text{Exec Price}}{\text{Mid}_t} \times 10{,}000 \times \text{Direction} - \text{TxnCost}$$
+```
+Markout_{t+k} = (Mid_{t+k} - Exec Price) / Mid_t × 10,000 × Direction - TxnCost
+```
 
 Three regimes compared:
 
@@ -306,13 +316,16 @@ ETF-eligible bonds show higher adverse selection (consistent with Pan & Zeng 201
 
 SLSQP-constrained optimisation minimises illiquidity-weighted execution cost subject to tracking error constraints:
 
-$$\min_{w} \; \text{TE}(w) + \lambda_{\text{illiq}} \sum_i w_i \cdot \text{IlliqRank}_i$$
+```
+min_w  TE(w) + λ_illiq × Σ w_i · IlliqRank_i
+```
 
 subject to:
 
-$$\sum_i w_i = 1, \quad w_i \leq 10\%, \quad |\text{Dur}_w - \text{Dur}_{\text{idx}}| \leq 0.25 \text{ yr}$$
-
-$$|\text{OAS}_w - \text{OAS}_{\text{idx}}| \leq 10 \text{ bps}, \quad |\text{Sector}_w - \text{Sector}_{\text{idx}}| \leq 5\%$$
+```
+Σ w_i = 1,   w_i ≤ 10%,   |Dur_w - Dur_idx| ≤ 0.25 yr
+|OAS_w - OAS_idx| ≤ 10 bps,   |Sector_w - Sector_idx| ≤ 5%
+```
 
 | Metric | Pro-Rata | Optimised | Improvement |
 |--------|------:|------:|------:|
